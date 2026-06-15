@@ -5,5 +5,5 @@ psutil
 pyautogui
 screen-brightness-control
 Pillow
-pypiwin32
-PyAudio
+pywin32
+pyaudio
