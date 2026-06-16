@@ -153,7 +153,7 @@ class AdvancedVoiceAssistant:
 
         tk.Label(
             header_frame,
-            text="Xeno - Advanced Voice Assistant",
+            text="Xena - Advanced Voice Assistant",
             font=('Arial', 20, 'bold'),
             fg='#00ffcc', bg='#0a0a0a'
         ).pack(side=tk.LEFT)
@@ -270,7 +270,7 @@ class AdvancedVoiceAssistant:
                                   insertbackground='white', font=('Arial', 11))
         self.llm_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
         self.llm_entry.bind("<Return>", lambda e: self.ask_llm())
-        self.llm_btn = tk.Button(llm_frame, text="Ask Xeno", command=self.ask_llm,
+        self.llm_btn = tk.Button(llm_frame, text="Ask Xena", command=self.ask_llm,
                                  bg='#007acc', fg='white', font=('Arial', 10))
         self.llm_btn.pack(side=tk.RIGHT)
 
@@ -509,7 +509,7 @@ class AdvancedVoiceAssistant:
 
         # ── Shutdown assistant ──────────────────────────────────────────────
         elif any(kw in command for kw in ['exit', 'quit', 'goodbye']):
-            response = "Shutting down Xeno. Goodbye!"
+            response = "Shutting down Xena. Goodbye!"
             self.add_to_log("Assistant", response)
             self.speak(response)
             self.root.after(1000, self.root.destroy)
