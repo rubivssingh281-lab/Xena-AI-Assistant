@@ -584,8 +584,8 @@ This project is open source. See the source file header for the original reposit
 
 ```
 https://github.com/rubivssingh281-lab/Xena-AI-Assistant
-MIT License
 
+MIT License
 Copyright (c) 2026 Saksham Singh
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
