@@ -50,7 +50,7 @@ class AdvancedVoiceAssistant:
         self.root = root
         self.root.title("Advanced Voice Assistant - Xena System")
         self.root.geometry("1920x1080")
-        self.root.configure(bg='#0a0a0a')
+        self.root.configure(bg="#000000")
 
         # ── Speech engine ──────────────────────────────────────────────────
         self.engine = pyttsx3.init()
@@ -170,14 +170,14 @@ class AdvancedVoiceAssistant:
 
     def create_gui(self):
         # ── Header ────────────────────────────────────────────────────────
-        header_frame = tk.Frame(self.root, bg='#0a0a0a')
+        header_frame = tk.Frame(self.root, bg="#000000")
         header_frame.pack(fill=tk.X, padx=20, pady=10)
 
         tk.Label(
             header_frame,
             text="Xena - Advanced Voice Assistant",
             font=('Arial', 20, 'bold'),
-            fg='#00ffcc', bg='#0a0a0a'
+            fg="#009BA7", bg='#000000'
         ).pack(side=tk.LEFT)
 
         self.status_var = tk.StringVar(value="Ready")
@@ -185,53 +185,61 @@ class AdvancedVoiceAssistant:
             header_frame,
             textvariable=self.status_var,
             font=('Arial', 12),
-            fg='#ffff00', bg='#0a0a0a'
+            fg='#FF8C00', bg='#000000'
         ).pack(side=tk.RIGHT)
 
         # ── Main content ──────────────────────────────────────────────────
-        main_frame = tk.Frame(self.root, bg='#0a0a0a')
+        main_frame = tk.Frame(self.root, bg='#000000')
         main_frame.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
 
         # Left panel
-        left_panel = tk.Frame(main_frame, bg='#0a0a0a')
+        left_panel = tk.Frame(main_frame, bg='#000000')
         left_panel.pack(side=tk.LEFT, fill=tk.Y, padx=(0, 20))
 
         # Voice visualisation
-        viz_frame = tk.Frame(left_panel, bg='#1a1a1a', relief=tk.RAISED, bd=1)
+        viz_frame = tk.Frame(left_panel, bg='#000000', relief=tk.FLAT,
+                            highlightbackground="#1a1a1a", highlightthickness=1)
         viz_frame.pack(fill=tk.X, pady=(0, 20))
         self.viz_canvas = tk.Canvas(viz_frame, width=200, height=150,
-                                    bg='#1a1a1a', highlightthickness=0)
+                                    bg='#000000', highlightthickness=0)
         self.viz_canvas.pack(pady=10)
         self.draw_voice_visualization(0)
 
         # Listen button
-        control_frame = tk.Frame(left_panel, bg='#0a0a0a')
+        control_frame = tk.Frame(left_panel, bg='#000000')
         control_frame.pack(fill=tk.X, pady=(0, 20))
         self.listen_btn = tk.Button(
             control_frame, text="🎤 Start Listening",
             command=self.toggle_listening,
             font=('Arial', 12, 'bold'),
-            bg='#007acc', fg='white', width=20, height=2
+            bg='#87fefe', fg='#000000',
+            activebackground='#FF8C00', activeforeground='#000000',
+            relief=tk.FLAT, bd=0, padx=10, pady=5, cursor='hand2'
         )
         self.listen_btn.pack(pady=5)
 
         # System status
-        status_frame = tk.Frame(left_panel, bg='#1a1a1a', relief=tk.RAISED, bd=1)
+        status_frame = tk.Frame(left_panel, bg='#000000', relief=tk.FLAT,
+                                highlightbackground='#009BA7', highlightthickness=1)
         status_frame.pack(fill=tk.X, pady=(0, 20))
         tk.Label(status_frame, text="System Status", font=('Arial', 12, 'bold'),
-                 fg='#00ffcc', bg='#1a1a1a').pack(pady=5)
-        self.cpu_label    = tk.Label(status_frame, text="CPU: --%",    font=('Arial', 10), fg='white', bg='#1a1a1a')
-        self.memory_label = tk.Label(status_frame, text="Memory: --%", font=('Arial', 10), fg='white', bg='#1a1a1a')
-        self.disk_label   = tk.Label(status_frame, text="Disk: --%",   font=('Arial', 10), fg='white', bg='#1a1a1a')
+                fg='#87fefe', bg='#000000').pack(pady=5)
+        self.cpu_label    = tk.Label(status_frame, text="CPU: --%",    font=('Arial', 10),
+                                    fg='white', bg='#000000')
+        self.memory_label = tk.Label(status_frame, text="Memory: --%", font=('Arial', 10),
+                                    fg='white', bg='#000000')
+        self.disk_label   = tk.Label(status_frame, text="Disk: --%",   font=('Arial', 10),
+                                    fg='white', bg='#000000')
         self.cpu_label.pack(anchor=tk.W, padx=10)
         self.memory_label.pack(anchor=tk.W, padx=10)
         self.disk_label.pack(anchor=tk.W, padx=10)
 
-        # Quick commands (original + new)
-        commands_frame = tk.Frame(left_panel, bg='#1a1a1a', relief=tk.RAISED, bd=1)
+        # Quick commands
+        commands_frame = tk.Frame(left_panel, bg='#000000', relief=tk.FLAT,
+                                highlightbackground='#009BA7', highlightthickness=1)
         commands_frame.pack(fill=tk.BOTH, expand=True)
         tk.Label(commands_frame, text="Quick Commands", font=('Arial', 12, 'bold'),
-                 fg='#00ffcc', bg='#1a1a1a').pack(pady=5)
+                fg='#009BA7', bg='#000000').pack(pady=5)
 
         quick_commands = [
             ("Open Chrome",    self.open_chrome),
@@ -248,85 +256,107 @@ class AdvancedVoiceAssistant:
             ("Open Terminal",  self.open_terminal),
             ("Calculate",      self._gui_calculate),
         ]
+
+        # WhatsApp button (standalone style)
         tk.Button(commands_frame, text="WhatsApp", command=self.open_whatsapp,
-          font=('Arial', 10), bg='#2a2a2a', fg='white', width=15).pack(pady=2)
+                font=('Arial', 10), bg='#222222', fg='white',
+                activebackground='#87fefe', activeforeground='#000000',
+                relief=tk.FLAT, bd=0, width=15, cursor='hand2').pack(pady=2)
 
         for cmd_text, cmd_func in quick_commands:
             tk.Button(
                 commands_frame, text=cmd_text, command=cmd_func,
-                font=('Arial', 10), bg='#2a2a2a', fg='white', width=15
+                font=('Arial', 10), bg='#222222', fg='white',
+                activebackground='#87fefe', activeforeground='#000000',
+                relief=tk.FLAT, bd=0, width=15, cursor='hand2'
             ).pack(pady=2)
 
         # Right panel
-        right_panel = tk.Frame(main_frame, bg='#0a0a0a')
+        right_panel = tk.Frame(main_frame, bg='#000000')
         right_panel.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
 
-        conv_frame = tk.Frame(right_panel, bg='#0a0a0a')
+        conv_frame = tk.Frame(right_panel, bg='#000000')
         conv_frame.pack(fill=tk.BOTH, expand=True)
         tk.Label(conv_frame, text="Conversation Log:", font=('Arial', 12, 'bold'),
-                 fg='white', bg='#0a0a0a').pack(anchor=tk.W)
+                fg='white', bg='#000000').pack(anchor=tk.W)
         self.conversation_log = scrolledtext.ScrolledText(
             conv_frame, wrap=tk.WORD, width=60, height=15,
-            bg='#1a1a1a', fg='#00ffcc', font=('Consolas', 10),
-            insertbackground='white'
+            bg="#000000", fg='#FF8C00', font=('Consolas', 10),
+            insertbackground='#009BA7',
+            relief=tk.SOLID,                  # solid border
+            bd=1,                             # border width
+            highlightbackground='#009BA7',    # border colour (orange)
+            highlightthickness=1.5,             # border thickness
+            highlightcolor='#009BA7'          # border when focused (brighter orange)
         )
         self.conversation_log.pack(fill=tk.BOTH, expand=True, pady=5)
         self.conversation_log.config(state=tk.DISABLED)
+        self.conversation_log.tag_configure("bold", font=("Consolas", 10, "bold"),
+                                            foreground='#87fefe')
+
         # App control panel
-        self.app_control_frame = tk.Frame(right_panel, bg='#1a1a1a',
-                                          relief=tk.RAISED, bd=1)
+        self.app_control_frame = tk.Frame(right_panel, bg="#000000",
+                                        relief=tk.FLAT, bd=0,
+                                        highlightbackground="#1a1a1a", highlightthickness=1)
         self.app_control_frame.pack(fill=tk.X, pady=(10, 0))
         tk.Label(self.app_control_frame, text="Current Application: None",
-                 font=('Arial', 11, 'bold'), fg='#ff9900', bg='#1a1a1a').pack(pady=5)
+                font=('Arial', 11, 'bold'), fg='#87fefe', bg='#000000').pack(pady=5)
         self.app_commands_text = tk.Text(
             self.app_control_frame, wrap=tk.WORD, width=60, height=4,
-            bg='#2a2a2a', fg='#cccccc', font=('Arial', 9), state=tk.DISABLED
+            bg='#000000', fg='#CCCCCC', font=('Arial', 9), state=tk.DISABLED,
+            relief=tk.FLAT, bd=0, padx=10, pady=5
         )
         self.app_commands_text.pack(fill=tk.X, padx=10, pady=5)
 
         self.monitor_system()
 
-        self.conversation_log.tag_configure("bold", font=("Consolas", 10, "bold"))
-
-    # ── Local LLM chat bar (uses Ollama server) ─────────────────
-
-        llm_frame = tk.Frame(right_panel, bg='#0a0a0a')
+        # LLM chat bar (multi‑line, taller input)
+        llm_frame = tk.Frame(right_panel, bg='#000000')
         llm_frame.pack(fill=tk.X, pady=(10, 0))
-        self.llm_entry = tk.Entry(llm_frame, bg='#2a2a2a', fg='white',
-                                  insertbackground='white', font=('Arial', 11))
+
+        self.llm_entry = tk.Text(llm_frame, height=3, wrap=tk.WORD,
+                                bg='#222222', fg='white',
+                                insertbackground='#E65100', font=('Arial', 11),
+                                relief=tk.FLAT, bd=1, padx=8, pady=8)
         self.llm_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        self.llm_entry.bind("<Return>", lambda e: self.ask_llm())
+
+        # Ctrl+Enter sends the message (keeps plain Enter for newline)
+        self.llm_entry.bind("<Control-Return>", lambda e: self.ask_llm())
+
         self.llm_btn = tk.Button(llm_frame, text="Ask Xena", command=self.ask_llm,
-                                 bg='#007acc', fg='white', font=('Arial', 10))
+                                bg='#E65100', fg='#000000', font=('Arial', 16, 'bold'),
+                                relief=tk.FLAT, bd=0, padx=10, pady=3, cursor='hand2', height=2)
         self.llm_btn.pack(side=tk.RIGHT)
 
-        self.root.after(50, self._poll_llm_queue)
-
-
-    # ── Webcam panel ────────────────────────────────
-
-        webcam_frame = tk.Frame(right_panel, bg='#1a1a1a', relief=tk.RAISED, bd=1)
+        # Webcam panel
+        webcam_frame = tk.Frame(right_panel, bg='#000000', relief=tk.FLAT, bd=0,
+                                highlightbackground='#009BA7', highlightthickness=1)
         webcam_frame.pack(fill=tk.BOTH, expand=True, pady=10)
 
-        self.webcam_label = tk.Label(webcam_frame, bg='black')
+        self.webcam_label = tk.Label(webcam_frame, bg="#000000")
         self.webcam_label.pack(pady=5)
-
-        cam_btn_frame = tk.Frame(webcam_frame, bg='#1a1a1a')
+        cam_btn_frame = tk.Frame(webcam_frame, bg='#000000')
         cam_btn_frame.pack(pady=5)
 
         self.cam_toggle_btn = tk.Button(
-            cam_btn_frame, text="📷 Start Camera",
+            cam_btn_frame, text="Start Camera",
             command=self.toggle_camera,
-            font=('Arial', 10), bg='#007acc', fg='white', width=15
+            font=('Arial', 12), bg='#87fefe', fg='#000000',
+            activebackground='#FF8C00', activeforeground='#000000',
+            relief=tk.FLAT, bd=0, width=15, cursor='hand2'
         )
         self.cam_toggle_btn.pack(side=tk.LEFT, padx=5)
 
         self.capture_btn = tk.Button(
-            cam_btn_frame, text="🔍 Analyze Face",
+            cam_btn_frame, text="Analyze Face",
             command=self.capture_analyze,
-            font=('Arial', 10), bg='#2a2a2a', fg='white', width=15
+            font=('Arial', 12), bg='#222222', fg='white',
+            activebackground='#87fefe', activeforeground='#000000',
+            relief=tk.FLAT, bd=0, width=15, cursor='hand2'
         )
         self.capture_btn.pack(side=tk.LEFT, padx=5)
+
+        self.root.after(50, self._poll_llm_queue)
 
     # ── GUI helper popups for new quick-command buttons ──────────────────────
 
@@ -340,15 +370,14 @@ class AdvancedVoiceAssistant:
         self._simple_input_dialog("Calculate", "Expression (e.g. 15 plus 7):", self.calculate)
 
     def _simple_input_dialog(self, title, prompt, callback):
-        """Tiny modal dialog that collects a single text input."""
         dlg = tk.Toplevel(self.root)
         dlg.title(title)
-        dlg.configure(bg='#1a1a1a')
+        dlg.configure(bg='#000000')
         dlg.resizable(False, False)
-        tk.Label(dlg, text=prompt, fg='white', bg='#1a1a1a',
-                 font=('Arial', 11)).pack(padx=15, pady=(15, 5))
-        entry = tk.Entry(dlg, width=35, bg='#2a2a2a', fg='white',
-                         insertbackground='white', font=('Arial', 11))
+        tk.Label(dlg, text=prompt, fg='white', bg='#000000',
+                font=('Arial', 11)).pack(padx=15, pady=(15, 5))
+        entry = tk.Entry(dlg, width=35, bg="#000000",
+                        insertbackground='#87fefe', font=('Arial', 11))
         entry.pack(padx=15, pady=5)
         entry.focus_set()
 
@@ -360,8 +389,11 @@ class AdvancedVoiceAssistant:
                 self.add_to_log("Assistant", result)
                 self.speak(result)
 
-        tk.Button(dlg, text="OK", command=_ok, bg='#007acc', fg='white',
-                  font=('Arial', 10), width=10).pack(pady=(5, 15))
+        tk.Button(dlg, text="OK", command=_ok,
+                bg='#87fefe', fg='#000000',
+                activebackground='#FF8C00', activeforeground='#000000',
+                font=('Arial', 10, 'bold'), relief=tk.FLAT, bd=0,
+                width=10, cursor='hand2').pack(pady=(5, 15))
         entry.bind('<Return>', _ok)
 
     # =========================================================================
@@ -374,9 +406,10 @@ class AdvancedVoiceAssistant:
         cx, cy = width // 2, height // 2
         for i in range(5):
             radius = 20 + i * 15 + level * 5
-            color = (f'#{min(255, 50 + i*40 + level*20):02x}'
-                     f'{min(255, 200 + level*10):02x}'
-                     f'{min(255, 200 + i*20):02x}')
+            r = 80 + i * 30
+            g = 30 + level * 10
+            b = 0
+            color = f'#{min(255, r):02x}{min(255, g):02x}{b:02x}'
             self.viz_canvas.create_oval(
                 cx - radius, cy - radius,
                 cx + radius, cy + radius,
@@ -1601,10 +1634,10 @@ class AdvancedVoiceAssistant:
 
     def ask_llm(self, prompt=None):
         if prompt is None:
-            prompt = self.llm_entry.get().strip()
+            prompt = self.llm_entry.get("1.0", tk.END).strip()   # get all text
         if not prompt:
             return
-        self.llm_entry.delete(0, tk.END)
+        self.llm_entry.delete("1.0", tk.END)                     # clear the Text widget
         self.add_to_log("You (LLM)", prompt)
         self.llm_btn.config(state=tk.DISABLED)
         threading.Thread(target=self._llm_worker, args=(prompt,), daemon=True).start()
