@@ -1,0 +1,13 @@
+FROM E:/Ministral-3-8B-Instruct-2512-Q8_0.gguf
+
+# The GGUF ships without a chat template, so define the Mistral [INST] format
+# explicitly INCLUDING system-prompt support (needed for the Xena persona).
+TEMPLATE """{{ if .System }}[INST] {{ .System }}
+
+{{ .Prompt }}[/INST]{{ else }}[INST] {{ .Prompt }}[/INST]{{ end }} {{ .Response }}</s>"""
+
+PARAMETER stop "[INST]"
+PARAMETER stop "[/INST]"
+PARAMETER stop "</s>"
+PARAMETER temperature 0.8
+PARAMETER num_ctx 8192

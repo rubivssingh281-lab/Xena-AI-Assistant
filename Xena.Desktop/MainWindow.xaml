@@ -1,0 +1,788 @@
+<Window x:Class="Xena.Desktop.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:Xena.Desktop"
+        Title="XENA" Width="1440" Height="900"
+        MinWidth="1200" MinHeight="800" Background="{StaticResource BgBrush}"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="CanResize"
+        SourceInitialized="Window_SourceInitialized">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0" ResizeBorderThickness="6" GlassFrameThickness="0"
+                      CornerRadius="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <Style x:Key="SectionTitle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+        </Style>
+
+        <Style x:Key="CyanPill" TargetType="Border" BasedOn="{StaticResource PillBorder}">
+            <Setter Property="BorderBrush" Value="{StaticResource CyanBrush}" />
+            <Setter Property="Background" Value="#102535" />
+        </Style>
+
+        <Style x:Key="OrangePill" TargetType="Border" BasedOn="{StaticResource PillBorder}">
+            <Setter Property="BorderBrush" Value="{StaticResource OrangeBrush}" />
+            <Setter Property="Background" Value="#331A10" />
+        </Style>
+
+        <!-- Conversation filter tabs (ALL FEEDS / CONVERSATION / SYSTEM LOG); the selected one has Tag state set in code -->
+        <Style x:Key="FilterTab" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Background" Value="{StaticResource PanelAltBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource LineBrush}" />
+            <Setter Property="FontSize" Value="10" />
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1" CornerRadius="4" Padding="12,4">
+                            <TextBlock Text="{TemplateBinding Content}" Foreground="{TemplateBinding Foreground}" FontSize="10"
+                                       FontWeight="{TemplateBinding FontWeight}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="BorderBrush" Value="#3C566E" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Small icon button (Segoe MDL2 glyph as Content) -->
+        <Style x:Key="IconButton" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource MutedBrush}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Bd" Background="Transparent" CornerRadius="4" Padding="7,5" Margin="2,0,0,0">
+                            <TextBlock x:Name="G" Text="{TemplateBinding Content}" FontFamily="Segoe MDL2 Assets" FontSize="14"
+                                       Foreground="{TemplateBinding Foreground}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#1A2A3A" />
+                                <Setter TargetName="G" Property="Foreground" Value="{StaticResource TextBrush}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CustomScroll" TargetType="ScrollViewer">
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollViewer">
+                        <Grid>
+                            <ScrollContentPresenter x:Name="PART_ScrollContentPresenter" Margin="{TemplateBinding Padding}"/>
+                            <ScrollBar x:Name="PART_VerticalScrollBar" Width="10" HorizontalAlignment="Right" Value="{TemplateBinding VerticalOffset}" Maximum="{TemplateBinding ScrollableHeight}" ViewportSize="{TemplateBinding ViewportHeight}" Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" Background="#080F19" Foreground="{StaticResource LineBrush}" />
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Message text you can select and copy (looks like plain text) -->
+        <ContextMenu x:Key="MessageMenu" x:Shared="False">
+            <MenuItem Header="Copy" Command="ApplicationCommands.Copy" InputGestureText="Ctrl+C"
+                      CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+            <MenuItem Header="Copy message" Click="CopyMessage_Click" />
+            <MenuItem Header="Copy whole conversation" Click="CopyConversation_Click" />
+            <Separator />
+            <MenuItem Header="Select all" Command="ApplicationCommands.SelectAll" InputGestureText="Ctrl+A"
+                      CommandTarget="{Binding PlacementTarget, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+        </ContextMenu>
+        <Style x:Key="MessageText" TargetType="TextBox">
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="IsReadOnlyCaretVisible" Value="False" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource TextBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource Mono}" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Padding" Value="-2,0,0,0" />
+            <Setter Property="SelectionBrush" Value="#196C8F" />
+            <Setter Property="TextBlock.LineHeight" Value="18" />
+            <Setter Property="ContextMenu" Value="{StaticResource MessageMenu}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TextBox">
+                        <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden"
+                                      VerticalScrollBarVisibility="Hidden" Padding="{TemplateBinding Padding}" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ================= Conversation card templates ================= -->
+
+        <!-- System initiation / protocol warning -->
+        <DataTemplate DataType="{x:Type local:ProtocolEntry}">
+            <Border Margin="0,0,0,14" CornerRadius="6" Background="#150F07" BorderBrush="#3E2C15" BorderThickness="1" Padding="16,12">
+                <StackPanel>
+                    <TextBlock Text="{Binding Header}" Foreground="{StaticResource OrangeBrush}" FontWeight="Bold" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,8"/>
+                    <ItemsControl ItemsSource="{Binding Lines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="10,2,0,2" FontSize="11" TextWrapping="Wrap">
+                                    <Run Text="{Binding Prefix}" Foreground="#B08B52"/><Run Text="{Binding Risk}" Foreground="{Binding RiskBrush}"/><Run Text="{Binding Rest}" Foreground="#8C7A5E"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <!-- Agent message (Xena broadcast / overlord / system) -->
+        <DataTemplate DataType="{x:Type local:AgentEntry}">
+            <Grid Margin="0,4,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Width="34" Height="34" CornerRadius="6" Background="{Binding AvatarBg}" BorderBrush="{Binding Accent}" BorderThickness="1" VerticalAlignment="Top" Margin="0,0,12,0">
+                    <TextBlock Text="{Binding Glyph}" Foreground="{Binding Accent}" FontFamily="Segoe MDL2 Assets" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1">
+                    <DockPanel Margin="0,0,0,4">
+                        <TextBlock Text="{Binding Title}" Foreground="{Binding Accent}" FontWeight="Bold" FontSize="12"/>
+                        <TextBlock Text="{Binding Timestamp}" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right"/>
+                    </DockPanel>
+                    <TextBox Style="{StaticResource MessageText}" Text="{Binding Body, Mode=OneWay}" />
+                    <ItemsControl ItemsSource="{Binding Pills}" Margin="0,10,0,0">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><StackPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="4" Background="{Binding Background}" BorderBrush="{Binding Brush}" BorderThickness="1" Padding="10,3" Margin="0,0,8,0">
+                                    <TextBlock Text="{Binding Text}" Foreground="{Binding Brush}" FontSize="10" FontWeight="Bold"/>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+
+        <!-- User directive (right-aligned cyan card) -->
+        <DataTemplate DataType="{x:Type local:UserDirectiveEntry}">
+            <Grid Margin="0,4,0,14">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" CornerRadius="6" Background="#0C1E2A" BorderBrush="{StaticResource CyanBrush}" BorderThickness="1" Padding="16,10" Margin="90,0,12,0">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="{Binding Title}" Foreground="{StaticResource CyanBrush}" FontWeight="Bold" FontSize="12"/>
+                            <TextBlock Text="{Binding Timestamp}" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right"/>
+                        </DockPanel>
+                        <TextBox Style="{StaticResource MessageText}" Text="{Binding Body, Mode=OneWay}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Width="34" Height="34" CornerRadius="6" Background="#0C1E2A" BorderBrush="{StaticResource CyanBrush}" BorderThickness="1" VerticalAlignment="Top">
+                    <TextBlock Text="&#xE77B;" Foreground="{StaticResource CyanBrush}" FontFamily="Segoe MDL2 Assets" FontSize="15" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <!-- Tool execution result -->
+        <DataTemplate DataType="{x:Type local:ToolEntry}">
+            <Border Margin="0,4,0,14" CornerRadius="6" Background="#08131B" BorderBrush="#173445" BorderThickness="1" Padding="16,12">
+                <StackPanel>
+                    <DockPanel Margin="0,0,0,8">
+                        <TextBlock Text="{Binding Title}" Foreground="{StaticResource CyanBrush}" FontWeight="Bold" FontSize="11"/>
+                        <Border CornerRadius="4" Background="{Binding StatusBg}" BorderBrush="{Binding StatusBrush}" BorderThickness="1" Padding="8,2" HorizontalAlignment="Right">
+                            <TextBlock Text="{Binding Status}" Foreground="{Binding StatusBrush}" FontSize="10" FontWeight="Bold"/>
+                        </Border>
+                    </DockPanel>
+                    <ItemsControl ItemsSource="{Binding Lines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Margin="0,2" FontSize="11" TextWrapping="Wrap">
+                                    <Run Text="{Binding Text}" Foreground="#7FA9C0"/><Run Text="{Binding Highlight}" Foreground="{Binding HighlightBrush}"/>
+                                </TextBlock>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </Border>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid" Margin="12,12,12,12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="50" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- TOP HEADER -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,0,0,8" Margin="0,0,0,12"
+                MouseLeftButtonDown="Header_MouseLeftButtonDown">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Title and Status -->
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="&#9881;" FontSize="18" Foreground="{StaticResource OrangeBrush}" Margin="0,0,10,0" VerticalAlignment="Center" Effect="{StaticResource OrangeGlow}"/>
+                    <TextBlock Text="XENA" FontSize="18" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" Effect="{StaticResource OrangeGlow}" />
+
+                    <Border Margin="16,0,0,0" Style="{StaticResource OrangePill}" Padding="8,2">
+                        <TextBlock Text="V4.0.8-REV" FontSize="10" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" />
+                    </Border>
+
+                    <TextBlock FontSize="10" VerticalAlignment="Center" Margin="20,0,0,0" Foreground="{StaticResource MutedBrush}"
+                               ToolTip="Connection to Xena's backend (checked every few seconds)">
+                        <Run x:Name="LinkDot" Text="&#9679;" Foreground="{StaticResource OrangeBrush}" /><Run x:Name="LinkText" Text="  ESTABLISHING NEURAL LINK…" />
+                    </TextBlock>
+                </StackPanel>
+
+                <!-- Center: Frequency Spectrum -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border Style="{StaticResource PillBorder}" BorderBrush="{StaticResource LineBrush}" Background="#0A111A" Padding="15,4"
+                            ToolTip="Microphone level while listening">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="FREQ SPECTRUM" FontSize="10" Foreground="{StaticResource MutedBrush}" VerticalAlignment="Center" Margin="0,0,15,0" />
+                            <StackPanel x:Name="SpectrumBars" Orientation="Horizontal" Height="14" VerticalAlignment="Center" Margin="0,0,15,0">
+                                <Rectangle Width="3" Height="6" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="12" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="8" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="14" Fill="{StaticResource OrangeBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="9" Fill="{StaticResource OrangeBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="5" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="11" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                                <Rectangle Width="3" Height="7" Fill="{StaticResource CyanBrush}" Margin="1,0" VerticalAlignment="Bottom"/>
+                            </StackPanel>
+                            <TextBlock x:Name="MicText" Text="MIC OFF" MinWidth="52" FontSize="10" Foreground="{StaticResource CyanBrush}" VerticalAlignment="Center" FontWeight="Bold" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right: Threat and Session -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="VoiceButton" Style="{StaticResource CaptionButton}" Width="Auto" Height="26" Padding="10,0" Margin="0,0,12,0"
+                            Click="VoiceButton_Click" ToolTip="Spoken replies on / off (Ctrl+M). Replies are always shown as text.">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock x:Name="VoiceGlyph" Text="&#xE767;" FontFamily="Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center"
+                                       Foreground="{StaticResource CyanBrush}" />
+                            <TextBlock x:Name="VoiceLabel" Text=" VOICE ON" FontSize="10" FontWeight="Bold" VerticalAlignment="Center"
+                                       Foreground="{StaticResource CyanBrush}" />
+                        </StackPanel>
+                    </Button>
+                    <Border x:Name="StatePill" Style="{StaticResource OrangePill}" Margin="0,0,20,0" Padding="12,4" ToolTip="What Xena is doing right now"
+                            MouseLeftButtonDown="StatePill_MouseLeftButtonDown">
+                        <TextBlock x:Name="StateText" Text="&#9679; STARTING" Foreground="{StaticResource OrangeBrush}" FontSize="11" FontWeight="Bold" />
+                    </Border>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="SessionText" Text="SESSION: 00:00:00" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right" />
+                        <TextBlock x:Name="HostText" Text="HOST: —" Foreground="{StaticResource CyanBrush}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" />
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Far right: window caption buttons -->
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top" Margin="18,-4,0,0"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                    <Button x:Name="MinButton" Style="{StaticResource CaptionButton}" Content="&#8211;" Click="MinButton_Click" ToolTip="Minimize"/>
+                    <Button x:Name="MaxButton" Style="{StaticResource CaptionButton}" Content="&#9633;" Click="MaxButton_Click" ToolTip="Maximize"/>
+                    <Button x:Name="CloseButton" Style="{StaticResource CaptionCloseButton}" Content="&#10005;" Click="CloseButton_Click" ToolTip="Close"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- MAIN CONTENT AREA -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="16" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT SIDEBAR -->
+            <Grid Grid.Column="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="330" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- Core Resonance -->
+                <Border Grid.Row="0" Style="{StaticResource PanelBorder}" Margin="0,0,0,16" Padding="16,16,16,18">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Radar (scaled + centered via Viewbox) -->
+                        <Viewbox Grid.Row="0" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,4,0,10">
+                            <Canvas Width="280" Height="240">
+                                <!-- Static structural outer ring -->
+                                <Ellipse Width="240" Height="240" Stroke="{StaticResource LineBrush}" StrokeThickness="1" Canvas.Left="20" Canvas.Top="0" />
+
+                                <!-- Rotating dashed outer ring -->
+                                <Ellipse x:Name="RingOuter" Width="240" Height="240" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1" Opacity="0.35" StrokeDashArray="2 6" Canvas.Left="20" Canvas.Top="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><RotateTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Rotating radar sweep (translucent wedge + bright beam) -->
+                                <Canvas x:Name="SweepGroup">
+                                    <Canvas.RenderTransform><RotateTransform CenterX="140" CenterY="120" /></Canvas.RenderTransform>
+                                    <Path Fill="#26FF6A18" Data="M140,120 L250.88,79.64 A118,118 0 0 1 250.88,160.36 Z" />
+                                    <Line X1="140" Y1="120" X2="258" Y2="120" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1.5" Opacity="0.9" />
+                                </Canvas>
+
+                                <!-- Rotating mid ring -->
+                                <Ellipse x:Name="RingMid" Width="180" Height="180" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1" Opacity="0.5" StrokeDashArray="10 6" Canvas.Left="50" Canvas.Top="30" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><RotateTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Rotating inner ring -->
+                                <Ellipse x:Name="RingInner" Width="120" Height="120" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1.5" Opacity="0.75" StrokeDashArray="14 5" Canvas.Left="80" Canvas.Top="60" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><RotateTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Static crosshairs -->
+                                <Line X1="20" Y1="120" X2="260" Y2="120" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1" Opacity="0.3" StrokeDashArray="4 2"/>
+                                <Line X1="140" Y1="0" X2="140" Y2="240" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1" Opacity="0.3" StrokeDashArray="4 2"/>
+
+                                <!-- Expanding resonance ping rings -->
+                                <Ellipse x:Name="Ping1" Width="16" Height="16" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1.5" Canvas.Left="132" Canvas.Top="112" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+                                <Ellipse x:Name="Ping2" Width="16" Height="16" Stroke="{StaticResource OrangeBrush}" StrokeThickness="1.5" Canvas.Left="132" Canvas.Top="112" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+                                <Ellipse x:Name="Ping3" Width="16" Height="16" Stroke="{StaticResource CyanBrush}" StrokeThickness="1.5" Canvas.Left="132" Canvas.Top="112" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Orbiting particles -->
+                                <Ellipse x:Name="Particle1" Width="6" Height="6" Fill="{StaticResource CyanBrush}" Canvas.Left="137" Canvas.Top="22" Effect="{StaticResource CyanGlow}">
+                                    <Ellipse.RenderTransform><RotateTransform CenterX="3" CenterY="98" /></Ellipse.RenderTransform>
+                                </Ellipse>
+                                <Ellipse x:Name="Particle2" Width="5" Height="5" Fill="{StaticResource OrangeBrush}" Canvas.Left="137" Canvas.Top="59">
+                                    <Ellipse.RenderTransform><RotateTransform CenterX="3" CenterY="61" /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Voice-reactive halo ring (grows / glows with mic level) -->
+                                <Ellipse x:Name="VoiceHalo" Width="60" Height="60" Stroke="{StaticResource OrangeBrush}" StrokeThickness="2" Canvas.Left="110" Canvas.Top="90" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.Effect><DropShadowEffect Color="#FF6A18" ShadowDepth="0" BlurRadius="14" Opacity="0.85" /></Ellipse.Effect>
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Breathing core (scale + glow driven live from the mic) -->
+                                <Ellipse x:Name="CoreDot" Width="50" Height="50" Fill="{StaticResource OrangeBrush}" Canvas.Left="115" Canvas.Top="95" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.Effect><DropShadowEffect x:Name="CoreGlow" Color="#FF6A18" ShadowDepth="0" BlurRadius="16" Opacity="0.85" /></Ellipse.Effect>
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Hot flare overlay: opacity tracks voice loudness -->
+                                <Ellipse x:Name="CoreHot" Width="50" Height="50" Fill="#FFF3D6" Canvas.Left="115" Canvas.Top="95" Opacity="0" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.RenderTransform><ScaleTransform /></Ellipse.RenderTransform>
+                                </Ellipse>
+
+                                <!-- Degree labels -->
+                                <TextBlock Text="000&#176;" FontSize="9" Foreground="{StaticResource OrangeBrush}" Canvas.Left="128" Canvas.Top="15"/>
+                                <TextBlock Text="090&#176;" FontSize="9" Foreground="{StaticResource OrangeBrush}" Canvas.Left="222" Canvas.Top="115"/>
+                                <TextBlock Text="180&#176;" FontSize="9" Foreground="{StaticResource OrangeBrush}" Canvas.Left="128" Canvas.Top="212"/>
+                                <TextBlock Text="270&#176;" FontSize="9" Foreground="{StaticResource OrangeBrush}" Canvas.Left="33" Canvas.Top="115"/>
+
+                                <Canvas.Triggers>
+                                    <EventTrigger RoutedEvent="Canvas.Loaded">
+                                        <BeginStoryboard>
+                                            <Storyboard>
+                                                <!-- Ring + sweep + particle rotations -->
+                                                <DoubleAnimation Storyboard.TargetName="RingOuter" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:1:20" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="RingMid" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="360" To="0" Duration="0:0:26" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="RingInner" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:0:14" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="SweepGroup" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:0:4.5" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Particle1" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="0" To="360" Duration="0:0:7" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Particle2" Storyboard.TargetProperty="(UIElement.RenderTransform).(RotateTransform.Angle)" From="360" To="0" Duration="0:0:5" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+
+                                                <!-- Core scale + glow are driven live from the microphone
+                                                     in code (OnRendering), with idle breathing when silent. -->
+
+                                                <!-- Ping 1 -->
+                                                <DoubleAnimation Storyboard.TargetName="Ping1" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" From="0.4" To="7" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping1" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.4" To="7" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping1" Storyboard.TargetProperty="(UIElement.Opacity)" From="0.6" To="0" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+
+                                                <!-- Ping 2 (staggered) -->
+                                                <DoubleAnimation Storyboard.TargetName="Ping2" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" From="0.4" To="7" BeginTime="0:0:0.8" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping2" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.4" To="7" BeginTime="0:0:0.8" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping2" Storyboard.TargetProperty="(UIElement.Opacity)" From="0.6" To="0" BeginTime="0:0:0.8" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+
+                                                <!-- Ping 3 (cyan, staggered) -->
+                                                <DoubleAnimation Storyboard.TargetName="Ping3" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)" From="0.4" To="7" BeginTime="0:0:1.6" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping3" Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)" From="0.4" To="7" BeginTime="0:0:1.6" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                                <DoubleAnimation Storyboard.TargetName="Ping3" Storyboard.TargetProperty="(UIElement.Opacity)" From="0.5" To="0" BeginTime="0:0:1.6" Duration="0:0:2.4" RepeatBehavior="Forever" Timeline.DesiredFrameRate="60" />
+                                            </Storyboard>
+                                        </BeginStoryboard>
+                                    </EventTrigger>
+                                </Canvas.Triggers>
+                            </Canvas>
+                        </Viewbox>
+
+                        <StackPanel Grid.Row="1" VerticalAlignment="Bottom">
+                            <TextBlock x:Name="ResonanceText" Text="CORE RESONANCE STANDBY" Foreground="{StaticResource TextBrush}" FontSize="14" FontWeight="Bold" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="ClusterText" Text="SYNAPSE CLUSTER STARTING" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Center" Margin="0,2,0,15" />
+                            <Button x:Name="ListenButton" Style="{StaticResource FlatButton}" Tag="6" Click="ListenButton_Click" Background="{StaticResource OrangeBrush}" Foreground="#160A05" FontWeight="Bold" FontSize="14" Padding="0,12" Margin="0,0"
+                                    ToolTip="Talk to Xena with your voice">
+                                <StackPanel Orientation="Horizontal" TextElement.FontWeight="Bold">
+                                    <TextBlock Text="&#127908;  " FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                    <TextBlock x:Name="ListenLabel" Text="ENGAGE LISTENING" FontWeight="Bold" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- System Diagnostics -->
+                <Border Grid.Row="1" Style="{StaticResource PanelBorder}" Margin="0,0,0,16" Padding="16">
+                    <StackPanel>
+                        <DockPanel Margin="0,0,0,20">
+                            <TextBlock Text="&#9881; SYSTEM DIAGNOSTICS" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                            <Border x:Name="HealthPill" Style="{StaticResource PillBorder}" Background="#0A2015" BorderBrush="{StaticResource GreenBrush}" HorizontalAlignment="Right" Padding="8,2">
+                                <TextBlock x:Name="HealthText" Text="HEALTHY" Foreground="{StaticResource GreenBrush}" FontSize="10" FontWeight="Bold" />
+                            </Border>
+                        </DockPanel>
+
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="Neural Load (CPU)" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                            <TextBlock x:Name="CpuText" Text="18.4%" FontSize="12" FontWeight="Bold" Foreground="{StaticResource CyanBrush}" HorizontalAlignment="Right" Effect="{StaticResource CyanGlow}" />
+                        </DockPanel>
+                        <ProgressBar x:Name="CpuBar" Value="18" Height="4" Margin="0,0,0,16" Foreground="{StaticResource CyanBrush}" Background="#080D15" BorderThickness="0" />
+
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock Text="Memory Matrix (RAM)" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                            <TextBlock x:Name="MemText" Text="90.9%" FontSize="12" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" HorizontalAlignment="Right" Effect="{StaticResource OrangeGlow}" />
+                        </DockPanel>
+                        <ProgressBar x:Name="MemBar" Value="90" Height="4" Margin="0,0,0,16" Foreground="{StaticResource OrangeBrush}" Background="#080D15" BorderThickness="0" />
+
+                        <DockPanel Margin="0,0,0,4">
+                            <TextBlock x:Name="DiskLabel" Text="Subroutine Storage (C:)" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+                            <TextBlock x:Name="DiskText" Text="—" FontSize="12" FontWeight="Bold" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Right" />
+                        </DockPanel>
+                        <ProgressBar x:Name="DiskBar" Value="0" Height="4" Margin="0,0,0,20" Foreground="{StaticResource MutedBrush}" Background="#080D15" BorderThickness="0" />
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="10" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Border Grid.Column="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="0,8"
+                                    ToolTip="Estimated from CPU load (Windows doesn't expose the real sensor without admin rights)">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="THERMAL ARRAY" FontSize="9" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="ThermalText" Text="68.2 &#176;C" FontSize="14" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" HorizontalAlignment="Center" Effect="{StaticResource OrangeGlow}"/>
+                                </StackPanel>
+                            </Border>
+                            <Border Grid.Column="2" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="0,8"
+                                    ToolTip="Battery level (⚡ = charging)">
+                                <StackPanel HorizontalAlignment="Center">
+                                    <TextBlock Text="POWER CELL" FontSize="9" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center" Margin="0,0,0,4"/>
+                                    <TextBlock x:Name="PowerText" Text="—" FontSize="14" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" HorizontalAlignment="Center" Effect="{StaticResource OrangeGlow}"/>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Command Arsenal -->
+                <Border Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <DockPanel Margin="0,0,0,12">
+                            <TextBlock Text="COMMAND ARSENAL" Style="{StaticResource SectionTitle}" />
+                            <TextBlock x:Name="ArsenalCount" Text="READY" Foreground="{StaticResource MutedBrush}" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                        </DockPanel>
+
+                        <Button Grid.Row="1" Click="CodeAgentButton_Click" Margin="0,0,0,12" Cursor="Hand"
+                                ToolTip="Open the Code Agent (Ctrl+E)">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border x:Name="Bd" Background="#10AEB5" CornerRadius="6" Padding="0,10">
+                                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#15C0C8" />
+                                        </Trigger>
+                                        <Trigger Property="IsPressed" Value="True">
+                                            <Setter TargetName="Bd" Property="Background" Value="#0C9097" />
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Button.Template>
+                            <!-- Foreground set locally so the app-wide TextBlock style can't lighten it -->
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="&#xE943;" FontFamily="Segoe MDL2 Assets" FontSize="14" Foreground="Black"
+                                           VerticalAlignment="Center" Margin="0,0,10,0" />
+                                <TextBlock Text="CODE AGENT" FontSize="13" FontWeight="Bold" Foreground="Black"
+                                           VerticalAlignment="Center" />
+                            </StackPanel>
+                        </Button>
+
+                        <ScrollViewer Grid.Row="2" Style="{StaticResource CustomScroll}">
+                            <!-- Tag = backend action; "prefill:" = start a sentence in the input for you to finish -->
+                            <UniformGrid x:Name="ArsenalGrid" Columns="2" VerticalAlignment="Top">
+                                <Button Content="&#62;_ Terminal" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_terminal" ToolTip="Open a terminal window" />
+                                <Button Content="&#127760; Chrome" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_chrome" ToolTip="Open Google Chrome" />
+                                <Button Content="&#129409; Brave" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_brave" ToolTip="Open the Brave browser" />
+                                <Button Content="&#128172; WhatsApp" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_whatsapp" ToolTip="Open WhatsApp" />
+                                <Button Content="&#128264; Mute / Unmute" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="volume_mute" ToolTip="Toggle the system sound" />
+                                <Button Content="&#128247; Screenshot" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="take_screenshot" ToolTip="Take a screenshot" />
+                                <Button Content="&#9728; Brightness +" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="brightness_up" ToolTip="Increase screen brightness" />
+                                <Button Content="&#128261; Brightness &#8722;" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="brightness_down" ToolTip="Decrease screen brightness" />
+                                <Button Content="&#128193; New Folder&#8230;" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="prefill:create folder " ToolTip="Type the folder name, then press Enter" />
+                                <Button Content="&#128221; New File&#8230;" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="prefill:create file " ToolTip="Type the file name, then press Enter" />
+                                <Button Content="&#129518; Calculate&#8230;" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="prefill:calculate " ToolTip="Type a sum, e.g. 15 times 7, then press Enter" />
+                                <Button Content="&#128269; Web Search&#8230;" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="prefill:search for " ToolTip="Type what to search for, then press Enter (opens a Google search)" />
+                                <Button Content="&#128194; File Explorer" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_file_explorer" ToolTip="Open File Explorer" />
+                                <Button Content="&#128202; Task Manager" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="open_task_manager" ToolTip="Open Task Manager" />
+                                <Button Content="&#128196; Safe Files" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="list_safe_files" ToolTip="List the files in Xena's automation folder" />
+                                <Button Content="&#129513; Capabilities" Style="{StaticResource QuickButton}" Click="QuickButton_Click" Tag="automation_capabilities" ToolTip="What Xena's automations can do" />
+                            </UniformGrid>
+                        </ScrollViewer>
+                    </Grid>
+                </Border>
+            </Grid>
+
+            <!-- MAIN PANE -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*" />
+                    <RowDefinition Height="80" />
+                    <RowDefinition Height="180" />
+                </Grid.RowDefinitions>
+
+                <!-- Neural Conversation Stream -->
+                <Border Grid.Row="0" Style="{StaticResource PanelBorder}" Margin="0,0,0,16">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+
+                        <Border Grid.Row="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,12">
+                            <DockPanel>
+                                <TextBlock Text="&#8767; NEURAL CONVERSATION STREAM" Style="{StaticResource SectionTitle}" Foreground="{StaticResource CyanBrush}" Effect="{StaticResource CyanGlow}" />
+                                <Border Style="{StaticResource PillBorder}" Background="#0A111A" BorderBrush="{StaticResource LineBrush}" Margin="10,0,0,0" Padding="8,2">
+                                    <TextBlock x:Name="MessageCountText" Text="0 MESSAGES" Foreground="{StaticResource MutedBrush}" FontSize="10" />
+                                </Border>
+
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                                    <Button x:Name="FilterAll" Style="{StaticResource FilterTab}" Tag="all" Click="Filter_Click" Content="ALL FEEDS"
+                                            ToolTip="Show everything" />
+                                    <Button x:Name="FilterChat" Style="{StaticResource FilterTab}" Tag="chat" Click="Filter_Click" Content="CONVERSATION"
+                                            ToolTip="Only your messages and Xena's replies" />
+                                    <Button x:Name="FilterSystem" Style="{StaticResource FilterTab}" Tag="system" Click="Filter_Click" Content="SYSTEM LOG"
+                                            ToolTip="Only status messages and errors" Margin="0,0,16,0" />
+                                    <Button Style="{StaticResource IconButton}" Click="ExportLog_Click" ToolTip="Save the conversation to a text file" Content="&#xE74E;" />
+                                    <Button x:Name="ClearButton" Style="{StaticResource IconButton}" Click="ClearButton_Click" ToolTip="Clear the conversation (Ctrl+L)" Content="&#xE74D;" />
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+
+                        <!-- Conversation cards -->
+                        <ScrollViewer x:Name="LogScroll" Grid.Row="1" Style="{StaticResource CustomScroll}" Padding="22,16,24,16"
+                                      ScrollChanged="LogScroll_ScrollChanged" PreviewMouseWheel="LogScroll_PreviewMouseWheel">
+                            <ItemsControl x:Name="ConversationLog" />
+                        </ScrollViewer>
+                        <!-- Shown when new messages arrive while you're reading further up -->
+                        <Button x:Name="JumpButton" Grid.Row="1" Visibility="Collapsed" Click="JumpButton_Click" Cursor="Hand"
+                                HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,14" ToolTip="Scroll to the latest message">
+                            <Button.Template>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="#102535" BorderBrush="{StaticResource CyanBrush}" BorderThickness="1" CornerRadius="12" Padding="14,4">
+                                        <TextBlock Text="&#8595;  NEW MESSAGES" Foreground="{StaticResource CyanBrush}" FontSize="10" FontWeight="Bold" />
+                                    </Border>
+                                </ControlTemplate>
+                            </Button.Template>
+                        </Button>
+                    </Grid>
+                </Border>
+
+                <!-- Command Input Area -->
+                <Grid Grid.Row="1" Margin="0,0,0,16">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <DockPanel Grid.Row="0" Margin="0,0,0,8">
+                        <TextBlock Text="&#9679; BACKEND PROCESS:" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <Border Background="#102535" BorderBrush="{StaticResource CyanBrush}" BorderThickness="1" CornerRadius="4" Padding="8,2"
+                                ToolTip="Xena's Python backend. If it ever stops, it is restarted automatically.">
+                            <TextBlock x:Name="BackendText" Text="PYTHON // STARTING" Foreground="{StaticResource CyanBrush}" FontSize="10" FontWeight="Bold" />
+                        </Border>
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                            <TextBlock x:Name="HintText" Text="ENTER send  ·  &#8593;&#8595; history  ·  ESC stop  |" Foreground="{StaticResource MutedBrush}" FontSize="10" Margin="0,0,8,0"/>
+                            <TextBlock Text="&#128274; SANDBOX RESTRICTED" Foreground="{StaticResource GreenBrush}" FontSize="10" FontWeight="Bold"
+                                       ToolTip="File automations only touch Xena's automation folder" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <Border Grid.Row="1" Background="#0A111A" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="20" Padding="16,0">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <Button x:Name="MicButton" Grid.Column="0" Click="ListenButton_Click" Cursor="Hand" VerticalAlignment="Center" Margin="0,0,12,0"
+                                    ToolTip="Talk instead of typing (same as ENGAGE LISTENING)">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="Button">
+                                        <TextBlock x:Name="G" Text="&#127908;" Foreground="{StaticResource MutedBrush}" FontSize="18" Background="Transparent" />
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="G" Property="Foreground" Value="{StaticResource CyanBrush}" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Button.Template>
+                            </Button>
+
+                            <Grid Grid.Column="1">
+                                <TextBlock x:Name="InputPlaceholder" Text="Enter neural command or prompt Xena..." Foreground="{StaticResource MutedBrush}" FontSize="14" FontFamily="{StaticResource Mono}" VerticalAlignment="Center" IsHitTestVisible="False" />
+                                <TextBox x:Name="CommandInput" Background="Transparent" Foreground="{StaticResource TextBrush}"
+                                         BorderThickness="0" FontSize="14" FontFamily="{StaticResource Mono}" VerticalAlignment="Center"
+                                         PreviewKeyDown="CommandInput_PreviewKeyDown" TextChanged="CommandInput_TextChanged" CaretBrush="{StaticResource CyanBrush}"
+                                         SelectionBrush="#196C8F" />
+                            </Grid>
+
+                            <TextBlock Grid.Column="2" Text="CTRL + K" Foreground="{StaticResource MutedBrush}" FontSize="10" VerticalAlignment="Center" Margin="0,0,16,0"
+                                       ToolTip="Ctrl+K jumps here from anywhere in the window" />
+
+                            <Button x:Name="ExecuteButton" Grid.Column="3" Style="{StaticResource FlatButton}" Tag="14" Click="ExecuteButton_Click" MinWidth="140"
+                                    Background="{StaticResource OrangeBrush}" Foreground="#160A05" FontSize="14"
+                                    Padding="24,0" Margin="0,8" ToolTip="Send (Enter)">
+                                <TextBlock x:Name="ExecuteLabel" Text="EXECUTE &#9889;" FontWeight="Bold" FontSize="14" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                            </Button>
+                        </Grid>
+                    </Border>
+                </Grid>
+
+                <!-- Biometrics -->
+                <Border Grid.Row="2" Style="{StaticResource PanelBorder}" Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="200" />
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Camera View: live preview from the backend, with names drawn on recognised faces -->
+                        <Border Grid.Column="0" BorderBrush="{StaticResource CyanBrush}" BorderThickness="1" Background="#05090F" CornerRadius="2" ClipToBounds="True">
+                            <Grid>
+                                <Image x:Name="CameraImage" Stretch="UniformToFill" Visibility="Collapsed"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+
+                                <Path Data="M 15 0 L 0 0 L 0 15 M 185 0 L 200 0 L 200 15 M 0 135 L 0 150 L 15 150 M 200 135 L 200 150 L 185 150"
+                                      Stroke="{StaticResource CyanBrush}" StrokeThickness="2" />
+
+                                <Grid x:Name="CameraIdle">
+                                    <Ellipse Width="40" Height="40" Stroke="{StaticResource CyanBrush}" StrokeThickness="1" StrokeDashArray="2 2" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    <TextBlock Text="&#9670;" Foreground="{StaticResource CyanBrush}" FontSize="18" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </Grid>
+
+                                <Border VerticalAlignment="Bottom" Height="22" Background="#A6050A10" />
+                                <TextBlock x:Name="CamFpsText" Text="CAM_01 // OFFLINE" Foreground="{StaticResource CyanBrush}" FontSize="9" HorizontalAlignment="Left" VerticalAlignment="Bottom" Margin="8,0,0,6" />
+                                <TextBlock x:Name="CamLockText" Text="STANDBY" Foreground="{StaticResource OrangeBrush}" FontSize="9" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,8,6" />
+                            </Grid>
+                        </Border>
+
+                        <!-- Right Stats -->
+                        <Grid Grid.Column="2">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <DockPanel Grid.Row="0" Margin="0,0,0,16">
+                                <TextBlock Text="&#9673; OPTICAL RECONNAISSANCE &amp; BIOMETRICS" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                                <TextBlock x:Name="SensingText" Text="CAMERA OFFLINE" Foreground="{StaticResource MutedBrush}" FontSize="10" FontWeight="Bold" HorizontalAlignment="Right" VerticalAlignment="Center" />
+                            </DockPanel>
+
+                            <Grid Grid.Row="1" Margin="0,0,0,16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="12" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+
+                                <Border Grid.Column="0" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+                                    <StackPanel>
+                                        <TextBlock Text="FACIAL CONFIDENCE" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock x:Name="FaceConfText" Text="&#8212;" FontSize="16" FontWeight="Bold" Foreground="{StaticResource TextBrush}" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="2" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+                                    <StackPanel>
+                                        <TextBlock Text="FACES IN VIEW" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock x:Name="FacesText" Text="&#8212;" FontSize="16" FontWeight="Bold" Foreground="{StaticResource CyanBrush}" Effect="{StaticResource CyanGlow}" />
+                                    </StackPanel>
+                                </Border>
+
+                                <Border Grid.Column="4" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="4" Padding="12,8">
+                                    <StackPanel>
+                                        <TextBlock Text="KNOWN PEOPLE" FontSize="10" Foreground="{StaticResource MutedBrush}" Margin="0,0,0,6"/>
+                                        <TextBlock x:Name="KnownText" Text="&#8212;" FontSize="16" FontWeight="Bold" Foreground="{StaticResource OrangeBrush}" Effect="{StaticResource OrangeGlow}"/>
+                                    </StackPanel>
+                                </Border>
+                            </Grid>
+
+                            <UniformGrid Grid.Row="2" Columns="3">
+                                <Button x:Name="CameraButton" Style="{StaticResource FlatButton}" Tag="20" Click="CameraButton_Click" Background="{StaticResource PanelAltBrush}" Foreground="{StaticResource CyanBrush}" FontSize="12" Padding="0,10" Margin="0,0,8,0" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                                        ToolTip="Turn the camera and face recognition on or off">
+                                    <TextBlock x:Name="CameraLabel" Text="&#128247; START CAMERA" FontWeight="Bold" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </Button>
+
+                                <Button Style="{StaticResource FlatButton}" Tag="20" Click="AnalyzeButton_Click" Background="{StaticResource PanelAltBrush}" Foreground="{StaticResource OrangeBrush}" FontSize="12" Padding="0,10" Margin="4,0,4,0" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                                        ToolTip="Describe the face in front of the camera">
+                                    <TextBlock Text="&#128100; ANALYZE FACE" FontWeight="Bold" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </Button>
+
+                                <Button Style="{StaticResource FlatButton}" Tag="20" Click="CalibrateButton_Click" Background="{StaticResource PanelAltBrush}" Foreground="{StaticResource TextBrush}" FontSize="12" Padding="0,10" Margin="8,0,0,0" BorderBrush="{StaticResource LineBrush}" BorderThickness="1"
+                                        ToolTip="Reload known faces (after adding photos to the known_faces folder)">
+                                    <TextBlock Text="&#9881; CALIBRATE" FontWeight="Bold" FontSize="12" Foreground="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Button}}" />
+                                </Button>
+                            </UniformGrid>
+                        </Grid>
+                    </Grid>
+                </Border>
+            </Grid>
+        </Grid>
+    </Grid>
+</Window>
