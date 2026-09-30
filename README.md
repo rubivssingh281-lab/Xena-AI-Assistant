@@ -1,6 +1,6 @@
 # Xena — Advanced Voice Assistant
 
->Xena is a Windows-oriented desktop voice assistant with speech, TTS, GUI automation, webcam/DeepFace recognition, browser controls, and local Ollama chat. A standard-library automation core is now available under `xena_core` without replacing the existing desktop behavior. A feature-rich, AI-powered desktop voice assistant built with Python. Xena combines voice recognition, text-to-speech, a local LLM (via Ollama), real-time face/emotion recognition, system control, and much more — all wrapped in a sleek dark-themed Tkinter GUI.
+>Xena is a Windows-oriented desktop voice assistant with speech, TTS, GUI automation, webcam/DeepFace recognition, browser controls, and local Ollama chat. A standard-library automation core is now available under `xena_core` without replacing the existing desktop behavior. A feature-rich, AI-powered desktop voice assistant built with Python. Xena combines voice recognition, text-to-speech, a local LLM (via Ollama), real-time face/emotion recognition, system control, and much more — all wrapped in a sleek dark-themed C# GUI.
 
 
 ## Setup
