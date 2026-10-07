@@ -13,6 +13,7 @@ A standard-library automation core is now available under `xena_core` to provide
 - **Browser Automation**: Programmatic web navigation and browser controls for gathering information or interacting with web pages.
 - **Secure Execution Core**: A robust `xena_core` engine featuring an approval-gated tool registry, bounded task retries, SQLite-backed task history, and verified tool execution.
 - **Modern Windows HUD**: A redesigned, native WPF-based desktop presentation layer (`Xena.Desktop`) for a sleek, responsive UI.
+- **Coding Agent Mode**: A locally LLM designed for getting your code verified and Edited with a dedicated IDE with Change accept/reject feature.
 
 ## Setup
 
