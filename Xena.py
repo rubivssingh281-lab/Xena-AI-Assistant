@@ -25,6 +25,7 @@ import cv2
 from deepface import DeepFace
 import pyperclip
 from pathlib import Path
+import tkinter as tk
 
 from xena_core import AutomationEngine, RiskLevel, TaskPlan, ToolCall, WorkflowStep
 from xena_core.scheduler import AutomationScheduler
@@ -48,7 +49,8 @@ def _run_bg(cmd_list_or_str, shell=False):
 
 # ─────────────────────────────────────────────────────────────────────────────
 class AdvancedVoiceAssistant:
-    def __init__(self):
+    def __init__(self, root=None):
+        self.root = root
         
         # ── Speech engine ──────────────────────────────────────────────────
         self.engine = pyttsx3.init()
@@ -1487,12 +1489,14 @@ class AdvancedVoiceAssistant:
             cpu = psutil.cpu_percent(interval=0.1)
             memory = psutil.virtual_memory().percent
             disk = psutil.disk_usage('/').percent
-            self.cpu_label.config(text=f"Neural Load (CPU)   {cpu}%")
-            self.memory_label.config(text=f"Memory Matrix       {memory}%")
-            self.disk_label.config(text=f"Subroutine Storage  {disk}%")
-            self._draw_meter(self.cpu_meter, cpu, "#19d7df")
-            self._draw_meter(self.memory_meter, memory, "#ff6a18")
-            self._draw_meter(self.disk_meter, disk, "#718398")
+            self.system_status = {"cpu": cpu, "memory": memory, "disk": disk}
+            if hasattr(self, 'cpu_label'):
+                self.cpu_label.config(text=f"Neural Load (CPU)   {cpu}%")
+                self.memory_label.config(text=f"Memory Matrix       {memory}%")
+                self.disk_label.config(text=f"Subroutine Storage  {disk}%")
+                self._draw_meter(self.cpu_meter, cpu, "#19d7df")
+                self._draw_meter(self.memory_meter, memory, "#ff6a18")
+                self._draw_meter(self.disk_meter, disk, "#718398")
         except Exception as e:
             print(f"System status error: {e}")
 
@@ -1505,7 +1509,8 @@ class AdvancedVoiceAssistant:
 
     def monitor_system(self):
         self.update_system_status()
-        self.root.after(2000, self.monitor_system)
+        if self.root and hasattr(self.root, 'after'):
+            self.root.after(2000, self.monitor_system)
 
     # ── TTS & log ─────────────────────────────────────────────────────────────
 
@@ -1692,7 +1697,7 @@ class AdvancedVoiceAssistant:
     # ──────────────── Local LLM (Ollama) ────────────────
 
     LLM_MODEL = "ministral"
-    LLM_URL = "http://localhost:11434/api/chat"
+    LLM_URL = "http://127.0.0.1:11434/api/chat"
     LLM_KEEP_ALIVE = "30m"  # keep the model resident to avoid slow cold reloads
 
     LLM_SYSTEM_PROMPT = (
@@ -1735,6 +1740,7 @@ class AdvancedVoiceAssistant:
             gate = self._SearchGate(on_token) if online else None
             text = self._ollama_chat(self._chat_system_prompt(online), prompt, temperature=None,
                                      model=model, on_token=gate.feed if gate else on_token)
+            text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
             if gate:
                 query = gate.search_query(text)
                 if query is None and self._UNSURE_HINTS.search(text) \
@@ -1744,7 +1750,6 @@ class AdvancedVoiceAssistant:
                     return self._answer_from_web(prompt, query or self._search_query(prompt),
                                                  model, on_token)
                 gate.flush()
-            text = text.strip()
             return text or "The model returned an empty response."
         except requests.exceptions.ConnectionError:
             return ("Local LLM (Ollama) is not reachable on port 11434. "
@@ -2097,13 +2102,10 @@ class AdvancedVoiceAssistant:
             "stream": True,
             "keep_alive": self.LLM_KEEP_ALIVE,
         }
-        options = {}
+        options = {"num_predict": max_tokens or 1024}
         if temperature is not None:
             options["temperature"] = temperature
-        if max_tokens:
-            options["num_predict"] = max_tokens
-        if options:
-            body["options"] = options
+        body["options"] = options
 
         parts: list[str] = []
         # timeout = max wait between chunks (covers a cold model load).
@@ -2491,10 +2493,25 @@ class AdvancedVoiceAssistant:
         self.speech_worker_running = False
         self.automation_scheduler.shutdown()
         self.automation_store.close()
-        self.root.destroy()
+        if self.root and hasattr(self.root, 'destroy'):
+            self.root.destroy()
 
 # ────────────────────── Main entry point ────────────────────────────────────
 if __name__ == "__main__":
-    root = tk.Tk()
-    app  = AdvancedVoiceAssistant(root)
-    root.mainloop()
+    app = AdvancedVoiceAssistant()
+    print("Xena Voice Assistant initialized. Type a command (or 'exit' to quit):")
+    try:
+        while True:
+            cmd = input("Xena > ").strip()
+            if not cmd:
+                continue
+            if cmd.lower() in ("exit", "quit", "q"):
+                break
+            res = app.process_command(cmd)
+            if res:
+                print(f"Xena: {res}")
+    except (KeyboardInterrupt, EOFError):
+        pass
+    finally:
+        app.shutdown()
+        print("Xena shut down.")
