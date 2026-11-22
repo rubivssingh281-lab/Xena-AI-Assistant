@@ -88,6 +88,7 @@ def invoke(app, action, args, emit=None):
             args.get("instruction", ""), args.get("filename", ""), args.get("content", ""),
             on_token=emit,
         ),
+        "clear_history": app.clear_conversation_history,
         "toggle_listening": app.toggle_listening,
         "toggle_camera": app.toggle_camera,
         "analyze_face": app.capture_analyze,

@@ -13,4 +13,4 @@ PARAMETER stop "<|im_end|>"
 PARAMETER stop "<|endoftext|>"
 PARAMETER temperature 0.3
 PARAMETER top_p 0.8
-PARAMETER num_ctx 8192
+PARAMETER num_ctx 32768

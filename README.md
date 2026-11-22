@@ -42,6 +42,8 @@ ollama create qwen3.5 -f Qwen3.5.Modelfile
 
 3. Configuration Options (Environment Variables):
 - `XENA_LLM_MODEL`: override the model name (defaults to `qwen3.5`).
+- `XENA_NUM_CTX`: model context window size (defaults to `32768`, up to model maximum).
+- `XENA_MAX_HISTORY_TOKENS`: token budget retained for past multi-turn conversation memory (defaults to `24000`).
 - `XENA_ENABLE_THINKING`: set to `1` to enable reasoning deliberation tokens (`<think>...`), or keep default `0` for low-latency, immediate voice/chat responses.
 
 ## C# desktop interface
