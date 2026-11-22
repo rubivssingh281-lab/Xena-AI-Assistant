@@ -1696,7 +1696,7 @@ class AdvancedVoiceAssistant:
 
     # ──────────────── Local LLM (Ollama) ────────────────
 
-    LLM_MODEL = "ministral"
+    LLM_MODEL = os.environ.get("XENA_LLM_MODEL", "qwen3.5")
     LLM_URL = "http://127.0.0.1:11434/api/chat"
     LLM_KEEP_ALIVE = "30m"  # keep the model resident to avoid slow cold reloads
 
@@ -1740,7 +1740,7 @@ class AdvancedVoiceAssistant:
             gate = self._SearchGate(on_token) if online else None
             text = self._ollama_chat(self._chat_system_prompt(online), prompt, temperature=None,
                                      model=model, on_token=gate.feed if gate else on_token)
-            text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
+            text = self._clean_thinking(text)
             if gate:
                 query = gate.search_query(text)
                 if query is None and self._UNSURE_HINTS.search(text) \
@@ -2086,6 +2086,46 @@ class AdvancedVoiceAssistant:
         r"\b(add|fix|change|refactor|rename|remove|delete|implement|rewrite|update|"
         r"replace|convert|optimi[sz]e|insert|comment|improve|clean)\b", re.I)
 
+    @staticmethod
+    def _clean_thinking(text: str) -> str:
+        """Strip internal reasoning tags (<think>...</think>) from Qwen/DeepSeek-R1 models."""
+        if not text:
+            return ""
+        cleaned = re.sub(r"<think>.*?(?:</think>|$)", "", text, flags=re.DOTALL)
+        return cleaned.strip()
+
+    class _ThinkingTokenFilter:
+        """Filters out <think>...</think> stream chunks from reaching UI / TTS on_token."""
+        def __init__(self, callback):
+            self.callback = callback
+            self.in_think = False
+            self.buf = ""
+
+        def feed(self, chunk: str):
+            if not self.callback:
+                return None
+            self.buf += chunk
+            while self.buf:
+                if self.in_think:
+                    if "</think>" in self.buf:
+                        _, self.buf = self.buf.split("</think>", 1)
+                        self.in_think = False
+                    else:
+                        self.buf = ""
+                        return None
+                else:
+                    if "<think>" in self.buf:
+                        pre, post = self.buf.split("<think>", 1)
+                        self.buf = post
+                        self.in_think = True
+                        if pre:
+                            return self.callback(pre)
+                    else:
+                        out = self.buf
+                        self.buf = ""
+                        return self.callback(out)
+            return None
+
     def _ollama_chat(self, system: str, user: str, temperature: float | None = 0.2,
                      max_tokens: int | None = None, model: str | None = None,
                      on_token=None) -> str:
@@ -2093,12 +2133,20 @@ class AdvancedVoiceAssistant:
         chunk is also handed to `on_token` the moment it arrives. If `on_token`
         returns False, generation is stopped early (closing the stream makes
         Ollama cancel the request)."""
+        active_model = model or self.LLM_MODEL
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user},
+        ]
+        # For reasoning models (e.g. Qwen3.5, DeepSeek-R1), close the think tag by default
+        # to prevent slow, redundant reasoning generation unless explicitly requested.
+        enable_thinking = os.environ.get("XENA_ENABLE_THINKING", "0").lower() in ("1", "true", "yes")
+        if not enable_thinking and any(k in active_model.lower() for k in ("qwen", "r1", "deepseek")):
+            messages.append({"role": "assistant", "content": "<think>\n</think>"})
+
         body = {
-            "model": model or self.LLM_MODEL,
-            "messages": [
-                {"role": "system", "content": system},
-                {"role": "user", "content": user},
-            ],
+            "model": active_model,
+            "messages": messages,
             "stream": True,
             "keep_alive": self.LLM_KEEP_ALIVE,
         }
@@ -2107,6 +2155,7 @@ class AdvancedVoiceAssistant:
             options["temperature"] = temperature
         body["options"] = options
 
+        token_emitter = self._ThinkingTokenFilter(on_token).feed if on_token else None
         parts: list[str] = []
         # timeout = max wait between chunks (covers a cold model load).
         with requests.post(self.LLM_URL, json=body, stream=True, timeout=300) as r:
@@ -2121,16 +2170,16 @@ class AdvancedVoiceAssistant:
                 chunk = (data.get("message") or {}).get("content", "")
                 if chunk:
                     parts.append(chunk)
-                    if on_token:
+                    if token_emitter:
                         try:
-                            keep_going = on_token(chunk)
+                            keep_going = token_emitter(chunk)
                         except Exception:
                             keep_going = None  # a display hiccup must never break generation
                         if keep_going is False:
                             break
                 if data.get("done"):
                     break
-        return "".join(parts)
+        return self._clean_thinking("".join(parts))
 
     @classmethod
     def _live_code_sections(cls, raw: str) -> tuple[str, str]:
@@ -2216,9 +2265,11 @@ class AdvancedVoiceAssistant:
             if explain_only:
                 notes = self._ollama_chat(self.CODE_EXPLAIN_PROMPT, user, temperature=0.3,
                                           max_tokens=260, on_token=feed)
+                notes = self._clean_thinking(notes)
                 return json.dumps({"explanation": self._clean_notes(notes), "code": content})
 
             raw = self._ollama_chat(self.CODE_SYSTEM_PROMPT, user, on_token=feed)
+            raw = self._clean_thinking(raw)
             notes, code_section = self._split_code_response(raw)
             code = self._extract_code(code_section)
             if not code.strip():
@@ -2358,6 +2409,7 @@ class AdvancedVoiceAssistant:
         except Exception as e:
             return json.dumps({"error": f"Model error: {e}"})
 
+        raw = self._clean_thinking(raw)
         message, edits_text = split_reply(raw)
         blocks = parse_blocks(edits_text, a_path)
         if not blocks and a_path and self._EDIT_WORDS.search(instruction):

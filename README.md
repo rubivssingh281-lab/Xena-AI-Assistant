@@ -26,6 +26,24 @@ python -m pip install -r requirements.txt
 python Xena.py
 ```
 
+## LLM Model Setup (Ollama with Qwen 3.5 GGUF)
+
+Xena integrates with a local LLM served via Ollama (listening on `http://127.0.0.1:11434`). The default configured model is `qwen3.5` using the quantized GGUF weights at `D:\Qwen3.5-9B-Q5_K_M.gguf`.
+
+1. Start the Ollama daemon:
+```powershell
+ollama serve
+```
+
+2. Register and create the `qwen3.5` model using the included `Qwen3.5.Modelfile`:
+```powershell
+ollama create qwen3.5 -f Qwen3.5.Modelfile
+```
+
+3. Configuration Options (Environment Variables):
+- `XENA_LLM_MODEL`: override the model name (defaults to `qwen3.5`).
+- `XENA_ENABLE_THINKING`: set to `1` to enable reasoning deliberation tokens (`<think>...`), or keep default `0` for low-latency, immediate voice/chat responses.
+
 ## C# desktop interface
 
 The redesigned Windows HUD is available as a native WPF application under `Xena.Desktop`:
