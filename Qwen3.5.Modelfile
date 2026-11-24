@@ -1,4 +1,5 @@
-FROM "D:/Qwen3.5-9B-Q5_K_M.gguf"
+# Self-contained Ollama model definition for Qwen3.5
+FROM qwen3.5:latest
 
 # ChatML template for Qwen3.5 with system-prompt support
 TEMPLATE """{{ if .System }}<|im_start|>system

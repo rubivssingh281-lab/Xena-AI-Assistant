@@ -26,18 +26,18 @@ python -m pip install -r requirements.txt
 python Xena.py
 ```
 
-## LLM Model Setup (Ollama with Qwen 3.5 GGUF)
+## LLM Model Setup (Ollama with Qwen 3.5)
 
-Xena integrates with a local LLM served via Ollama (listening on `http://127.0.0.1:11434`). The default configured model is `qwen3.5` using the quantized GGUF weights at `D:\Qwen3.5-9B-Q5_K_M.gguf`.
+Xena integrates with a local LLM served via Ollama (listening on `http://127.0.0.1:11434`). The model is stored directly in Ollama's local application store as `qwen3.5` (9B Q5_K_M weights), requiring no external GGUF files on disk.
 
 1. Start the Ollama daemon:
 ```powershell
 ollama serve
 ```
 
-2. Register and create the `qwen3.5` model using the included `Qwen3.5.Modelfile`:
+2. The model `qwen3.5` (and alias `ministral`) is pre-registered in Ollama with a 32K context window. To inspect or customize parameters, use the included `Qwen3.5.Modelfile`:
 ```powershell
-ollama create qwen3.5 -f Qwen3.5.Modelfile
+ollama show qwen3.5 --modelfile
 ```
 
 3. Configuration Options (Environment Variables):
