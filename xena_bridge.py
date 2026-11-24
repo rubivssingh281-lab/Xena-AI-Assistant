@@ -9,6 +9,9 @@ from Xena import AdvancedVoiceAssistant
 
 import socket
 
+# Auto-start Ollama daemon silently if not already running
+threading.Thread(target=AdvancedVoiceAssistant._ensure_ollama_running, daemon=True).start()
+
 requests = queue.Queue()
 response_queue = queue.Queue()
 

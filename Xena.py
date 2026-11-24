@@ -106,6 +106,7 @@ class AdvancedVoiceAssistant:
         self.speech_queue = queue.Queue()
         self.speech_worker_running = True
         threading.Thread(target=self._speech_worker, daemon=True).start()
+        threading.Thread(target=self._ensure_ollama_running, daemon=True).start()
         self.setup_app_commands()
         
         
@@ -1729,6 +1730,47 @@ class AdvancedVoiceAssistant:
         "- Always stay in character as Xena, on your operator's side.\n"
     )
 
+    @classmethod
+    def _ensure_ollama_running(cls, wait_timeout: float = 8.0) -> bool:
+        """Check if Ollama is listening on 127.0.0.1:11434; if not, launch it silently in background."""
+        import socket
+        try:
+            with socket.create_connection(("127.0.0.1", 11434), timeout=0.6):
+                return True
+        except (OSError, socket.timeout):
+            pass
+
+        candidates = [
+            shutil.which("ollama"),
+            os.path.expandvars(r"%LOCALAPPDATA%\Programs\Ollama\ollama.exe"),
+            r"C:\Users\rubiv\AppData\Local\Programs\Ollama\ollama.exe",
+            r"C:\Program Files\Ollama\ollama.exe",
+        ]
+        exe = next((c for c in candidates if c and os.path.isfile(c)), None)
+        if not exe:
+            return False
+
+        try:
+            flags = subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0
+            subprocess.Popen(
+                [exe, "serve"],
+                creationflags=flags,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            t_end = time.time() + wait_timeout
+            while time.time() < t_end:
+                time.sleep(0.3)
+                try:
+                    with socket.create_connection(("127.0.0.1", 11434), timeout=0.5):
+                        return True
+                except (OSError, socket.timeout):
+                    continue
+        except Exception as e:
+            print(f"[Ollama] Auto-start error: {e}")
+            return False
+        return False
+
     def get_conversation_history(self) -> list[dict[str, str]]:
         with getattr(self, "_history_lock", threading.Lock()):
             return [dict(m) for m in getattr(self, "conversation_history", [])]
@@ -2213,28 +2255,40 @@ class AdvancedVoiceAssistant:
 
         token_emitter = self._ThinkingTokenFilter(on_token).feed if on_token else None
         parts: list[str] = []
-        # timeout = max wait between chunks (covers a cold model load).
-        with requests.post(self.LLM_URL, json=body, stream=True, timeout=300) as r:
-            r.raise_for_status()
-            for line in r.iter_lines():  # raw bytes: json.loads decodes UTF-8 correctly
-                if not line:
-                    continue
-                try:
-                    data = json.loads(line)
-                except json.JSONDecodeError:
-                    continue
-                chunk = (data.get("message") or {}).get("content", "")
-                if chunk:
-                    parts.append(chunk)
-                    if token_emitter:
-                        try:
-                            keep_going = token_emitter(chunk)
-                        except Exception:
-                            keep_going = None  # a display hiccup must never break generation
-                        if keep_going is False:
-                            break
-                if data.get("done"):
-                    break
+
+        def _stream_post():
+            nonlocal parts
+            parts = []
+            with requests.post(self.LLM_URL, json=body, stream=True, timeout=300) as r:
+                r.raise_for_status()
+                for line in r.iter_lines():  # raw bytes: json.loads decodes UTF-8 correctly
+                    if not line:
+                        continue
+                    try:
+                        data = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    chunk = (data.get("message") or {}).get("content", "")
+                    if chunk:
+                        parts.append(chunk)
+                        if token_emitter:
+                            try:
+                                keep_going = token_emitter(chunk)
+                            except Exception:
+                                keep_going = None  # a display hiccup must never break generation
+                            if keep_going is False:
+                                break
+                    if data.get("done"):
+                        break
+
+        try:
+            _stream_post()
+        except requests.exceptions.ConnectionError:
+            if self._ensure_ollama_running(wait_timeout=7.0):
+                _stream_post()
+            else:
+                raise
+
         return self._clean_thinking("".join(parts))
 
     @classmethod
