@@ -1706,8 +1706,9 @@ class AdvancedVoiceAssistant:
     LLM_MODEL = os.environ.get("XENA_LLM_MODEL", "qwen3.5")
     LLM_URL = "http://127.0.0.1:11434/api/chat"
     LLM_KEEP_ALIVE = "30m"  # keep the model resident to avoid slow cold reloads
-    NUM_CTX = int(os.environ.get("XENA_NUM_CTX", "32768"))
-    MAX_HISTORY_TOKENS = int(os.environ.get("XENA_MAX_HISTORY_TOKENS", "24000"))
+    NUM_CTX = int(os.environ.get("XENA_NUM_CTX", "65536"))
+    MAX_OUTPUT_TOKENS = int(os.environ.get("XENA_MAX_OUTPUT_TOKENS", "8192"))
+    MAX_HISTORY_TOKENS = int(os.environ.get("XENA_MAX_HISTORY_TOKENS", "48000"))
 
     LLM_SYSTEM_PROMPT = (
         "You are XENA — the Ultron Synapse, a hyper-intelligent AI core bonded to "
@@ -1798,7 +1799,7 @@ class AdvancedVoiceAssistant:
             if not hasattr(self, "conversation_history"):
                 return
             total_chars = sum(len(m.get("content", "")) for m in self.conversation_history)
-            max_chars = getattr(self, "MAX_HISTORY_TOKENS", 24000) * 4
+            max_chars = getattr(self, "MAX_HISTORY_TOKENS", 48000) * 4
             while total_chars > max_chars and len(self.conversation_history) > 2:
                 removed_u = self.conversation_history.pop(0)
                 removed_a = self.conversation_history.pop(0) if self.conversation_history else {}
@@ -2248,7 +2249,10 @@ class AdvancedVoiceAssistant:
             "stream": True,
             "keep_alive": self.LLM_KEEP_ALIVE,
         }
-        options = {"num_predict": max_tokens or 1024, "num_ctx": getattr(self, "NUM_CTX", 32768)}
+        options = {
+            "num_predict": max_tokens if max_tokens is not None else getattr(self, "MAX_OUTPUT_TOKENS", 8192),
+            "num_ctx": getattr(self, "NUM_CTX", 65536),
+        }
         if temperature is not None:
             options["temperature"] = temperature
         body["options"] = options
